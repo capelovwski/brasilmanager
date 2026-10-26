@@ -19,7 +19,7 @@ O jogo salva sozinho no navegador (localStorage). O salvamento na nuvem (3 espa�
 
 ## Novidades
 
-- **0.27.0:** versão desktop.
+- **0.27.0:** versão desktop em tela cheia, sem rolagem: menu lateral com a bandeira tremulando, painéis que se ajustam à altura da tela.
 - **0.26.0:** pré-temporada com amistosos opcionais; modo leve (estádio a 30 fps, animações pausam em segundo plano, pixel arts com bem menos nós no DOM).
 
 Veja `docs/backlog.md` para o que vem a seguir.

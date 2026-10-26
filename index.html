@@ -2068,9 +2068,9 @@ const ballIcon = (() => {
 function tabBar() {
   const n = unreadCount(S);
   const items = [['elenco', 'Elenco', 'time'], ['mercado', 'Mercado', 'mercado'], ['inicio', 'Início', 'inicio'], ['clube', 'Clube', 'clube'], ['calendario', 'Calendário', 'calendario']];
-  return `<nav class="tabs">${items.map(([k, nm, ic]) => k === 'inicio'
+  return `<nav class="tabs">${deskBrand()}${items.map(([k, nm, ic]) => k === 'inicio'
     ? `<button class="tab-home" data-act="tab" data-v="${k}" aria-current="${tab === k}" aria-label="Início"><span class="hb"><span class="hbi">${ballIcon()}</span></span>${n ? `<em class="badge">${n > 9 ? '9+' : n}</em>` : ''}<span class="hl">${nm}</span></button>`
-    : `<button data-act="tab" data-v="${k}" aria-current="${tab === k}">${icon(ic)}${nm}</button>`).join('')}</nav>`;
+    : `<button data-act="tab" data-v="${k}" aria-current="${tab === k}">${icon(ic)}${nm}</button>`).join('')}${deskFoot()}</nav>`;
 }
 
 // se alguma tela falhar ao desenhar, fecha as camadas por cima e redesenha, em vez de deixar o jogo congelado
@@ -2095,6 +2095,7 @@ window.addEventListener('resize', measureScreen); if (window.visualViewport) win
 window.addEventListener('orientationchange', () => setTimeout(measureScreen, 300));
 function renderCore() {
   const y = window.scrollY, shEl = document.querySelector('.sheet'), sy = shEl ? shEl.scrollTop : 0, wEl = document.querySelector('.win-in'), wy = wEl ? wEl.scrollTop : 0;
+  document.documentElement.classList.toggle('hubmode', !!S);
   if (!S) { document.documentElement.removeAttribute('data-theme'); $app.innerHTML = pickScreen(); return; }
   try { calMigrate(); contInit(); estInit(); } catch (e) { console.error(e); }
   try { jfPal(); } catch (e) { console.error(e); } setAccent(); applyCrest();
@@ -2105,9 +2106,9 @@ function renderCore() {
   const body = HUB[tab](rows), side = isDesk() ? deskSide(tab, rows) : '';
   const an = render.anim !== undefined ? render.anim : !render.keep; $app.classList.toggle('anim', an); render.anim = undefined;
   const sheetIn = sheet && !prevSheet; prevSheet = sheet;
-  $app.innerHTML = header(rows) + `<main class="main hub hub-${tab}${side ? '' : ' noside'}">${body}${side}</main>` + tabBar() + (win ? winView() : '') + (sheet ? sheetHtml().replace('class="sheet"', `class="sheet${sheetIn ? ' in' : ''}"`).replace('class="sbg"', `class="sbg${sheetIn ? ' in' : ''}"`) : '') + (compOpen ? compView() : '') + (profileOpen ? profileView() : '') + (live ? liveView() : report ? reportView() : '') + (seasonRep ? seasonView() : '') + (!live && !report && !seasonRep ? jobView() : '') + (tut && !live && !report ? tutView() : '');
+  $app.innerHTML = header(rows) + `<main class="main hub hub-${tab}${side ? '' : ' noside'}">${side ? `<div class="dmain">${body}</div>` : body}${side}</main>` + tabBar() + (win ? winView() : '') + (sheet ? sheetHtml().replace('class="sheet"', `class="sheet${sheetIn ? ' in' : ''}"`).replace('class="sbg"', `class="sbg${sheetIn ? ' in' : ''}"`) : '') + (compOpen ? compView() : '') + (profileOpen ? profileView() : '') + (live ? liveView() : report ? reportView() : '') + (seasonRep ? seasonView() : '') + (!live && !report && !seasonRep ? jobView() : '') + (tut && !live && !report ? tutView() : '');
   { const m = document.querySelector('.main.hub'); if (m) m.classList.toggle('bgpause', !!(win || sheet || compOpen || profileOpen || live || report || seasonRep)); }
-  measureScreen();
+  measureScreen(); try { deskFit(); } catch (e) { console.error(e); }
   if (live && !live.started) startLive();
   window.scrollTo(0, render.keep ? y : 0);
   const ns = document.querySelector('.sheet'); if (ns && render.keep) ns.scrollTop = sy;
@@ -3800,6 +3801,7 @@ const isDesk = () => !!(window.matchMedia && matchMedia('(min-width: 900px)').ma
   if (!window.matchMedia) return;
   const mq = matchMedia('(min-width: 900px)'), on = () => { if (typeof S !== 'undefined' && S) { render.full = true; render.keep = true; render(); } };
   if (mq.addEventListener) mq.addEventListener('change', on); else if (mq.addListener) mq.addListener(on);
+  let rt = 0, lh = window.innerHeight; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (isDesk() && Math.abs(window.innerHeight - lh) > 24) { lh = window.innerHeight; on(); } }, 220); });
 })();
 function deskHint() { // no desktop sobra espaco: o texto de ajuda de cada janela fica sempre a vista
   if (!isDesk() || !win || !TUTS[win.v]) return '';
@@ -3810,16 +3812,26 @@ const dMsgs = (n) => S.messages.slice(0, n).map((m) => `<div class="dms">${(m.op
 const dDate = (r) => { const d = slotDate(S.season, r); return d.getUTCDate() + '/' + (d.getUTCMonth() + 1); };
 const DESKP = {
   inicio: (rows) => {
-    const all = userFixtures(S), next = all.filter((f) => !f.result).slice(0, 4), done = all.filter((f) => f.result).slice(-4).reverse();
-    const pos = rows.findIndex((x) => x.clubId === S.userClubId), s0 = Math.max(0, Math.min(rows.length - 8, pos - 3)), mini = rows.slice(s0, s0 + 8);
+    const all = userFixtures(S), next = all.filter((f) => !f.result).slice(0, 6), done = all.filter((f) => f.result).slice(-4).reverse();
+    const pos = rows.findIndex((x) => x.clubId === S.userClubId), s0 = Math.max(0, Math.min(rows.length - 12, pos - 5)), mini = rows.slice(s0, s0 + 12);
     const st = boardStatus(S.board.conf), cls = st.cls === 'warn' || st.cls === 'bad' ? st.cls : '';
     const nx = (f) => { const opp = isMe(f.homeId) ? f.awayId : f.homeId; return `<div class="dnx"><b class="px">${dDate(f.round)}</b>${compChip(f.comp)}${crest(opp, 's')}<span class="g">${esc(clubOf(opp).name)}</span><small>${f.neutral ? 'neutro' : isMe(f.homeId) ? 'em casa' : 'fora'}</small></div>`; };
     return [
+      preCard(),
       dcard('Próximos jogos', next.length ? next.map(nx).join('') : '<p class="dtx muted">Seu clube não tem mais jogos nesta temporada.</p>'),
       dcard(`Classificação · ${COMPS[userDiv(S)].short}`, mini.map((x) => { const i = rows.indexOf(x); return `<div class="dtr${isMe(x.clubId) ? ' me' : ''}"><b class="px">${i + 1}</b>${crest(x.clubId, 's')}<span class="g">${esc(clubOf(x.clubId).name)}</span><i>${x.played}j</i><i>${x.points}</i></div>`; }).join('') + `<button class="btn sec sm dbtn" data-act="win" data-v="tabela">Tabela completa</button>`),
       done.length ? dcard('Últimos resultados', done.map(resultLine).join('')) : '',
       dcard('Diretoria', `<p class="dtx"><b>${esc(st.label)}.</b> ${esc(st.text)}</p><div class="dconf"><i class="${cls}" style="width:${Math.round(S.board.conf)}%"></i></div><p class="dtx muted" style="margin-top:8px">Meta da temporada: ${esc(S.board.objText)}</p>`),
-      dcard('Mensagens', dMsgs(4) + `<button class="btn sec sm dbtn" data-act="win" data-v="msgs">Abrir mensagens</button>`),
+    ].join('');
+  },
+  calendario: () => {
+    const all = userFixtures(S), next = all.filter((f) => !f.result).slice(0, 8), done = all.filter((f) => f.result).slice(-6).reverse();
+    const nx = (f) => { const opp = isMe(f.homeId) ? f.awayId : f.homeId; return `<div class="dnx"><b class="px">${dDate(f.round)}</b>${compChip(f.comp)}${crest(opp, 's')}<span class="g">${esc(clubOf(opp).name)}</span><small>${f.neutral ? 'neutro' : isMe(f.homeId) ? 'em casa' : 'fora'}</small></div>`; };
+    const open = windowOpen(S.round);
+    return [
+      dcard('Próximos jogos', next.length ? next.map(nx).join('') : '<p class="dtx muted">Seu clube não tem mais jogos nesta temporada.</p>'),
+      done.length ? dcard('Últimos resultados', done.map(resultLine).join('')) : '',
+      dcard('Janela de transferências', `<p class="dtx"><b>${esc(windowText(S.round))}</b></p><p class="dtx muted">${open ? 'Janela aberta: dá para contratar, vender e receber propostas.' : 'Janela fechada: só jogadores livres.'} As faixas coloridas no calendário mostram quando abre.</p>`),
     ].join('');
   },
   elenco: () => {
@@ -3827,7 +3839,7 @@ const DESKP = {
     const top = [...sq].sort((a, b) => b.ovr - a.ovr).slice(0, 5), exp = sq.filter((p) => p.contract === 0).slice(0, 5);
     const pl = (p, note) => `<div class="dpl">${face(p, 'sm')}<span class="g"><b>${esc(p.name)}</b></span><small>${note}</small>${ov(p.ovr)}</div>`;
     return [
-      dcard('Condição do elenco', `<p class="dtx">${inj.length ? `<b>${inj.length}</b> lesionado${inj.length > 1 ? 's' : ''}` : 'Ninguém lesionado'} · ${tired.length ? `<b>${tired.length}</b> cansado${tired.length > 1 ? 's' : ''}` : 'ninguém cansado'}.</p>` + inj.slice(0, 4).map((p) => pl(p, `${p.injury} rodada${p.injury > 1 ? 's' : ''} fora`)).join('') + tired.map((p) => pl(p, `${Math.round(p.fitness)}% de energia`)).join('')),
+      dcard('Condição do elenco', `<div class="kv"><span class="muted">Energia média</span><b>${Math.round(sq.reduce((a, p) => a + p.fitness, 0) / Math.max(1, sq.length))}%</b></div><div class="kv"><span class="muted">Idade média</span><b>${(sq.reduce((a, p) => a + p.age, 0) / Math.max(1, sq.length)).toFixed(1).replace('.', ',')} anos</b></div><p class="dtx" style="margin-top:8px">${inj.length ? `<b>${inj.length}</b> lesionado${inj.length > 1 ? 's' : ''}` : 'Ninguém lesionado'} · ${tired.length ? `<b>${tired.length}</b> cansado${tired.length > 1 ? 's' : ''}` : 'ninguém cansado'}.</p>` + inj.slice(0, 4).map((p) => pl(p, `${p.injury} rodada${p.injury > 1 ? 's' : ''} fora`)).join('') + tired.map((p) => pl(p, `${Math.round(p.fitness)}% de energia`)).join('')),
       dcard('Craques do time', top.map((p) => pl(p, p.pos)).join('')),
       exp.length ? dcard('Contratos vencendo', `<p class="dtx muted">Quem está com contrato zerado sai de graça no fim da temporada. Renove na aba Contratos.</p>` + exp.map((p) => pl(p, 'vence este ano')).join('')) : '',
     ].join('');
@@ -3851,6 +3863,28 @@ const DESKP = {
     ].join('');
   },
 };
+function deskBrand() { return isDesk() ? `<div class="dbrand">${brandLogo('s')}</div>` : ''; }
+function deskFoot() {
+  if (!isDesk() || !S) return '';
+  const r = Math.min(S.round, LAST_ROUND);
+  return `<div class="dfoot"><div class="r"><small>TEMPORADA</small><b>${S.season}</b></div><div class="r"><small>DATA</small><b>${dDate(r)} · ${r}/${LAST_ROUND}</b></div><div class="r"><small>CAIXA</small><b>${money(S.finance.balance)}</b></div><div class="w">${esc(windowText(S.round))}</div></div>`;
+}
+// corta linhas do painel lateral ate caber na altura da tela (sem rolagem e sem corte)
+function deskFit() {
+  if (!isDesk()) return;
+  const sd = document.querySelector('.deskside'); if (!sd) return;
+  const sel = '.dnx,.dtr,.dpl,.dms,.res';
+  for (let g = 0; g < 90 && sd.scrollHeight > sd.clientHeight + 1; g++) {
+    let best = null, bn = 2;
+    sd.querySelectorAll('.dcard').forEach((c) => { const n = c.querySelectorAll(sel).length; if (n > bn) { bn = n; best = c; } });
+    if (best) {
+      const rows = [...best.querySelectorAll(sel)], i = rows.findIndex((r) => r.classList.contains('me'));
+      (i > rows.length / 2 ? rows[0] : rows[rows.length - 1]).remove(); continue;
+    }
+    const cards = sd.querySelectorAll('.dcard'); if (cards.length > 1) { cards[cards.length - 1].remove(); continue; }
+    break;
+  }
+}
 function deskSide(tab, rows) {
   try { const f = DESKP[tab]; const h = f ? f(rows) : ''; return h ? `<aside class="deskside">${h}</aside>` : ''; } catch (e) { console.error(e); return ''; }
 }
@@ -3972,7 +4006,7 @@ HUB.inicio = (rows) => {
   const cans = sq.filter((p) => p.injury === 0 && groupOf(p) === 'cansados').length;
   const r = opp ? scout(S, opp) : null;
   return `${offersCard()}<div class="stage" style="${crowdStyle(k.shirt, oc ? oc.color1 : '#888')}">${crowdHtml(k.shirt, oc ? oc.color1 : '#888888')}<div class="grass"></div><div class="stg-in${center.includes('stg-hd') ? ' hd' : ''}">${center}</div></div>
-    <div class="actrow">${act}</div>${preCard()}
+    <div class="actrow">${act}</div>${isDesk() ? '' : preCard()}
     <div class="qrow">
       ${qtile('win', 'tatica', 'tatica', 'Táticas', `${S.tactic.formation} · ${STYLES[S.tactic.style].name}`, '', 'q-tatica')}
       ${qtile('win', 'treino', 'treino', 'Semana', wk.event ? 'decisão!' : cans ? `${cans} cansados` : 'tudo ok', wk.event ? '!' : '', 'q-treino')}
@@ -5886,47 +5920,70 @@ body { background-image: radial-gradient(rgba(120,70,20,.09) 1px, transparent 1.
 /* ===== v0.27: versao desktop (tela larga) ===== */
 .deskside, .deskhint { display: none; }
 @media (min-width: 900px) {
-  :root { --deskW: 236px; }
-  body { padding-inline: 0; }
-  #app { max-width: none; margin: 0 0 0 var(--deskW); padding: 0 36px; }
-  .top { margin-inline: -36px; padding-inline: 36px; }
-  .top .hdr2 { max-width: 1200px; margin-inline: auto; }
+  :root { --deskW: 232px; }
+  html.hubmode, html.hubmode body { overflow: hidden; }
+  html.hubmode body { padding-inline: 0; }
+  html.hubmode #app { max-width: none; margin: 0 0 0 var(--deskW); padding: 0 28px; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+  html.hubmode .top { flex: none; margin-inline: -28px; padding-inline: 28px; }
+  html.hubmode .top .hdr2 { max-width: 1360px; margin-inline: auto; }
   .hp-club { display: inline !important; }
 
-  /* menu lateral no lugar da barra de baixo */
-  .tabs { left: 0; top: 0; bottom: 0; right: auto; width: var(--deskW); max-width: none; transform: none; display: flex !important; flex-direction: column; align-items: stretch; gap: 8px; padding: 74px 12px 18px; border-top: 0; border-right: 4px solid var(--ol); box-shadow: none; overflow-y: auto; contain: none; z-index: 12; }
-  .tabs::before { content: 'BRASIL MANAGER 2000'; position: absolute; top: 20px; left: 0; right: 0; text-align: center; font-family: var(--font-px); font-size: 12px; letter-spacing: .1em; color: #f6e9c6; text-shadow: 0 2px 0 rgba(0,0,0,.55); line-height: 1.3; padding: 0 10px; }
-  .tabs button { flex: none; flex-direction: row; justify-content: flex-start; align-items: center; gap: 14px; padding: 12px 14px; font-size: 13px; letter-spacing: .06em; text-align: left; border: 2px solid var(--line); border-right: 2px solid var(--line); background: var(--surface); width: 100%; }
+  /* menu lateral: bandeira, abas, resumo da temporada */
+  .tabs { left: 0; top: 0; bottom: 0; right: auto; width: var(--deskW); max-width: none; transform: none; display: flex !important; flex-direction: column; align-items: stretch; gap: 8px; padding: 14px 12px 14px; border-top: 0; border-right: 4px solid var(--ol); box-shadow: none; overflow: hidden; contain: none; z-index: 12; }
+  .tabs button { flex: 1 1 0; min-height: 48px; max-height: 98px; flex-direction: row; justify-content: flex-start; align-items: center; gap: 16px; padding: 11px 16px; font-size: 14px; letter-spacing: .06em; text-align: left; border: 2px solid var(--line); border-right: 2px solid var(--line); background: var(--surface); width: 100%; }
   .tabs button:hover { border-color: var(--accent); }
   .tabs button[aria-current="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-  .tabs .icon { width: 24px; height: 24px; }
-  .tabs .tab-home { order: -1; padding-top: 10px; padding-bottom: 10px; background: var(--surface) !important; }
-  .tabs .tab-home[aria-current="true"] { background: var(--accent) !important; color: var(--on-accent); }
+  .tabs .icon { width: 34px; height: 34px; }
+  .tabs .tab-home { order: -1; flex-grow: 1.3; max-height: 112px; padding-top: 8px; padding-bottom: 8px; background: var(--surface) !important; }
+  .tabs .tab-home[aria-current="true"] { background: var(--accent) !important; color: var(--on-accent) !important; }
   .tab-home .hb { position: static; width: 44px; height: 44px; margin: 0; top: auto; left: auto; flex: none; }
   .tab-home .hbi { width: 38px; height: 38px; }
   .tab-home .badge, .tabs .badge { top: 8px; left: auto; right: 10px; }
   .tab-home .hl { display: block; }
+  .dbrand { order: -2; display: flex; justify-content: center; padding: 4px 0 8px; }
+  .dbrand .brand { gap: 10px; }
+  .dbrand .brand .flag { width: 78px; height: 64px; }
+  .dbrand .bw .b1 { font-size: 16px; color: #35d36b; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+  .dbrand .bw .b2 { font-size: 16px; color: #f6e9c6; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+  .dbrand .bw .b3 { font-size: 10px; padding: 2px 5px; }
+  .dfoot { order: 99; margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: rgba(0,0,0,.34); border: 2px solid rgba(0,0,0,.45); color: #f6e9c6; }
+  .dfoot .r { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .dfoot small { font-family: var(--font-px); font-size: 9px; letter-spacing: .08em; opacity: .75; }
+  .dfoot b { font-family: var(--font-px); font-size: 12px; }
+  .dfoot .w { font-size: 12px; line-height: 1.35; opacity: .9; border-top: 1px solid rgba(246,233,198,.25); padding-top: 6px; }
 
-  /* conteudo em duas colunas */
-  .main.hub { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr); gap: 16px 24px; align-content: start; align-items: start; height: auto !important; min-height: 0; overflow: visible !important; contain: none !important; padding: 20px 0 56px; }
-  .main.hub.noside { grid-template-columns: minmax(0, 920px); justify-content: center; }
-  .main.hub > * { grid-column: 1; min-width: 0; }
-  .main.hub > .deskside { grid-column: 2; grid-row: 1 / span 24; }
-  .main.hub .stage { flex: none !important; min-height: 380px; }
-  .main.hub .stage.pitchst { min-height: 460px; }
-  .deskside { display: flex; flex-direction: column; gap: 16px; position: sticky; top: calc(var(--hdrH, 84px) + 16px); }
-  .dcard { margin: 0; }
-  .dcard p.dtx { font-size: 14px; line-height: 1.5; margin: 0 0 8px; }
-  .dnx, .dtr, .dpl, .dms { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; min-width: 0; }
-  .dnx:first-of-type, .dtr:first-of-type, .dpl:first-of-type, .dms:first-of-type { border-top: 0; }
+  /* conteudo: duas colunas que ocupam a tela inteira, sem rolagem */
+  html.hubmode .main.hub { flex: 1 1 0; min-height: 0; height: auto !important; width: 100%; max-width: 1360px; margin: 0 auto; padding: 14px 0 18px; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 18px; align-items: stretch; overflow: hidden !important; contain: layout style; }
+  .dmain { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+  .dmain > * { flex: none; min-width: 0; }
+  .dmain > .stage { flex: 1 1 0 !important; min-height: 180px; }
+  .dmain .crest.xl { width: clamp(70px, 17vh, 190px); }
+  .hub-clube .dmain .qrow { grid-template-columns: repeat(3, 1fr) !important; }
+  .hub-calendario .dmain .calgrid { flex: 1 1 0; min-height: 0; grid-template-rows: auto; grid-auto-rows: minmax(0, 1fr); align-content: stretch; gap: 4px; }
+  .hub-calendario .dmain .cday { height: auto !important; aspect-ratio: auto; min-height: 0; }
+  .hub-calendario .dmain .cday .crest.s { width: clamp(20px, 4.6vh, 40px); }
+  .hub-calendario .dmain .cday .dn { font-size: 12px; }
+  .hub-calendario .calgrid > span { font-size: 11px; }
+  .hub-calendario .nextl { display: none; }
+  .deskside { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; overflow: hidden; }
+  .dcard { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 0; margin: 0; overflow: hidden; }
+  .dcard > .lbl { flex: none; }
+  .dcard p.dtx { font-size: 14px; line-height: 1.45; margin: 0 0 6px; flex: none; }
+  .dnx, .dtr, .dpl, .dms, .dcard .kv, .dcard .res { flex: 1 0 auto; display: flex; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); font-size: 14px; min-width: 0; min-height: 30px; }
+  .dcard .kv { justify-content: space-between; }
+  .dcard > .lbl + * { border-top: 0; }
   .dnx span, .dtr span, .dpl span, .dms span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .dnx .g, .dtr .g, .dpl .g, .dms .g { flex: 1; }
   .dnx small, .dpl small, .dms small { color: var(--muted); font-size: 12px; white-space: nowrap; }
   .dtr b.px { min-width: 22px; font-size: 12px; } .dtr.me { background: var(--soft); font-weight: 700; margin-inline: -8px; padding-inline: 8px; }
   .dtr i { font-style: normal; font-family: var(--font-px); font-size: 12px; min-width: 26px; text-align: right; }
   .dms .dot { animation: none; }
-  .dconf { height: 10px; background: var(--soft); border: 1px solid var(--line); margin: 8px 0 4px; } .dconf i { display: block; height: 100%; background: var(--good); } .dconf i.warn { background: var(--warn); } .dconf i.bad { background: var(--bad); }
-  .dbtn { margin-top: 10px; }
+  .dconf { flex: none; height: 10px; background: var(--soft); border: 1px solid var(--line); margin: 6px 0 4px; } .dconf i { display: block; height: 100%; background: var(--good); } .dconf i.warn { background: var(--warn); } .dconf i.bad { background: var(--bad); }
+  .dbtn { flex: none; margin-top: 8px; }
+  .deskside .precard { flex: none; margin: 0; }
+  .deskside .precard .btns { display: flex; gap: 8px; } .deskside .precard .btns .btn { flex: 1; }
+
+  .win-in .sec-escalacao .pitch { width: min(100%, 520px); margin-inline: auto; }
 
   /* janelas viram pop-up no centro da tela */
   .win { --sheet-top: 0px; display: block; }
